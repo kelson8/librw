@@ -14,6 +14,23 @@
 #include "rwd3d.h"
 #include "rwd3dimpl.h"
 
+
+// TODO Is this where I place this? There is an EndScene function in here.
+#define _IMGUI_TEST
+#ifdef _IMGUI_TEST
+#include "imgui.h"
+#include "imgui_impl_dx9.h"
+#include "imgui_impl_win32.h"
+#include "imgui_functions.h"
+
+//#include "resource.h"
+//#include "skeleton.h"
+//#include "platform.h"
+//#include "crossplatform.h"
+// TODO Figure out how to do this.
+//#include "../../src/core/Pad.h"
+#endif
+
 #define PLUGIN_ID 0
 
 namespace rw {
@@ -985,6 +1002,257 @@ setViewport(Raster *fb)
 	vp.Height = fb->height;
 	d3ddevice->SetViewport(&vp);
 }
+<<<<<<< HEAD
+=======
+
+static void
+beginUpdate(Camera *cam)
+{
+	float view[16], proj[16];
+
+	// View Matrix
+	Matrix inv;
+	Matrix::invert(&inv, cam->getFrame()->getLTM());
+	// Since we're looking into positive Z,
+	// flip X to ge a left handed view space.
+	view[0]  = -inv.right.x;
+	view[1]  =  inv.right.y;
+	view[2]  =  inv.right.z;
+	view[3]  =  0.0f;
+	view[4]  = -inv.up.x;
+	view[5]  =  inv.up.y;
+	view[6]  =  inv.up.z;
+	view[7]  =  0.0f;
+	view[8]  =  -inv.at.x;
+	view[9]  =   inv.at.y;
+	view[10] =  inv.at.z;
+	view[11] =  0.0f;
+	view[12] = -inv.pos.x;
+	view[13] =  inv.pos.y;
+	view[14] =  inv.pos.z;
+	view[15] =  1.0f;
+	memcpy(&cam->devView, view, sizeof(RawMatrix));
+//	d3ddevice->SetTransform(D3DTS_VIEW, (D3DMATRIX*)view);
+
+	// Projection Matrix
+	float32 invwx = 1.0f/cam->viewWindow.x;
+	float32 invwy = 1.0f/cam->viewWindow.y;
+	float32 invz = 1.0f/(cam->farPlane-cam->nearPlane);
+
+	proj[0] = invwx;
+	proj[1] = 0.0f;
+	proj[2] = 0.0f;
+	proj[3] = 0.0f;
+
+	proj[4] = 0.0f;
+	proj[5] = invwy;
+	proj[6] = 0.0f;
+	proj[7] = 0.0f;
+
+	proj[8] = cam->viewOffset.x*invwx;
+	proj[9] = cam->viewOffset.y*invwy;
+	proj[12] = -proj[8];
+	proj[13] = -proj[9];
+	if(cam->projection == Camera::PERSPECTIVE){
+		proj[10] = cam->farPlane*invz;
+		proj[11] = 1.0f;
+
+		proj[15] = 0.0f;
+	}else{
+		proj[10] = invz;
+		proj[11] = 0.0f;
+
+		proj[15] = 1.0f;
+	}
+	proj[14] = -cam->nearPlane*proj[10];
+	memcpy(&cam->devProj, proj, sizeof(RawMatrix));
+//	d3ddevice->SetTransform(D3DTS_PROJECTION, (D3DMATRIX*)proj);
+
+	// TODO: figure out where this is really done
+//	setRenderState(D3DRS_FOGSTART, *(uint32*)&cam->fogPlane);
+//	setRenderState(D3DRS_FOGEND, *(uint32*)&cam->farPlane);
+	d3dShaderState.fogData.start = cam->fogPlane;
+	d3dShaderState.fogData.end = cam->farPlane;
+	d3dShaderState.fogData.range = 1.0f/(cam->fogPlane - cam->farPlane);
+	// TODO: not quite sure this is the right place to do this...
+	d3dShaderState.fogData.disable = rwStateCache.fogenable ? 0.0f : 1.0f;
+	d3dShaderState.fogDisable.start = 0.0f;
+	d3dShaderState.fogDisable.end = 0.0f;
+	d3dShaderState.fogDisable.range = 0.0f;
+	d3dShaderState.fogDisable.disable = 1.0f;
+	d3dShaderState.fogDirty = true;
+
+	setRenderSurfaces(cam);
+
+	setViewport(cam->frameBuffer);
+
+	d3ddevice->BeginScene();
+}
+
+#ifdef _IMGUI_TEST
+/// <summary>
+/// This is the test window that shows up.
+/// </summary>
+/// <param name="show_demo_window">Shows the demo window</param>
+/// <param name="show_another_window">Shows the test window</param>
+/// <param name="clear_color">This is the ImVec4 value for colors, mine is set to (0.45f, 0.55f, 0.60f, 1.00f)</param>
+void
+Window1(bool show_demo_window, bool show_another_window, ImVec4 clear_color)
+{
+	ImGuiIO io;
+	static float f = 0.0f;
+	static int counter = 0;
+
+	ImGui::Begin("Hello, world!"); // Create a window called "Hello, world!" and append into it.
+
+	ImGui::Text("This is some useful text.");          // Display some text (you can use a format strings too)
+	ImGui::Checkbox("Demo Window", &show_demo_window); // Edit bools storing our window open/close state
+	ImGui::Checkbox("Another Window", &show_another_window);
+
+	ImGui::SliderFloat("float", &f, 0.0f, 1.0f);             // Edit 1 float using a slider from 0.0f to 1.0f
+	ImGui::ColorEdit3("clear color", (float *)&clear_color); // Edit 3 floats representing a color
+
+	if(ImGui::Button("Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
+		counter++;
+	ImGui::SameLine();
+	ImGui::Text("counter = %d", counter);
+
+	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+	ImGui::End();
+
+	// 3. Show another simple window.
+	if(show_another_window) {
+		ImGui::Begin("Another Window", &show_another_window); // Pass a pointer to our bool variable (the window will have a closing button that
+		                                                      // will clear the bool when clicked)
+		ImGui::Text("Hello from another window!");
+		if(ImGui::Button("Close Me")) show_another_window = false;
+		ImGui::End();
+	}
+}
+
+#endif
+
+// TODO Possibly use this for ImGui
+// I added ImGui init 'GS_START_UP' in WinMain under win.cpp
+
+
+
+// I have ImGui in here, for now it auto toggles on when started up and the mouse doesn't work in it.
+// TODO Figure out how to make this hide by default - Well I just had to change the boolean from false to true in win.cpp
+// I'll leave it enabled by default for now until I fix the mouse.
+// TODO Figure out how to override the mouse
+// This is running with the F8 keybind in my lua test.
+static void
+endUpdate(Camera *cam)
+{
+
+#ifdef _IMGUI_TEST
+	ImGuiFunctions imGuiFunctions = ImGuiFunctions();
+	bool show_demo_window = true;
+	bool show_another_window = false;
+	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
+	// d3ddevice->EndScene();
+	/*
+
+	        rw::d3d::d3ddevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+	        rw::d3d::d3ddevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+	        rw::d3d::d3ddevice->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
+	        D3DCOLOR clear_col_dx = D3DCOLOR_RGBA((int)(clear_color.x * clear_color.w * 255.0f), (int)(clear_color.y * clear_color.w * 255.0f),
+	                                              (int)(clear_color.z * clear_color.w * 255.0f), (int)(clear_color.w * 255.0f));
+	*/
+
+	 //while(!ImGuiFunctions::ImGuiDone) {
+		// Setup the new frames
+
+	//if (imGuiFunctions.ImGuiEnabled) {
+
+	//	}
+
+	if(!imGuiFunctions.ImGuiDone) {
+
+		ImGui_ImplDX9_NewFrame();
+		ImGui_ImplWin32_NewFrame();
+		ImGui::NewFrame();
+
+		// Test for mouse
+		ClipCursor(NULL);
+		// if (imGuiFunctions.ImGuiEnabled) {
+		//	CPad::GetPad(0)->SetDisablePlayerControls(PLAYERCONTROL_SHORTCUT_TAXI);
+		//
+		//} else {
+		//
+		//}
+
+		//
+		// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+		if(show_demo_window) ImGui::ShowDemoWindow(&show_demo_window);
+
+		{
+			// https://www.unknowncheats.me/forum/general-programming-and-reversing/505033-imgui-mouse-interaction-video.html
+			ImGuiIO &io = ImGui::GetIO();
+			// https://www.unknowncheats.me/forum/direct3d/190472-imgui-mouse-cursor.html
+			// Hmm, with my new menu setup, the mouse shows up but cannot click on anything.
+			// Something in the code is overriding the mouse.. TODO Fix that.
+
+			// Update mouse position
+			POINT p;
+			GetCursorPos(&p);
+			// I setup the hwnd to nullptr by default in win.cpp, and it's being set in the MainWndProc
+			ScreenToClient(imGuiFunctions.mainWindow, &p); // convert screen coords to client coords.
+			io.MousePos = ImVec2(p.x, p.y);
+
+			// Update mouse button state
+			io.MouseDown[0] = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
+			io.MouseDown[1] = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
+
+			// Toggle ImGui with right mouse button
+			if(io.MouseDown[1]) { ImGuiFunctions::ImGuiDone = true; }
+
+			// TODO Make the mouse work properly.
+			io.MouseDrawCursor = true;
+			//
+
+			// io.MouseDown[0] = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
+
+			// This toggles ImGui!!
+			// Now to figure out how to add a keyboard shortcut to it.
+			// Also to figure out
+			io.MouseDown[1] = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
+
+			if(io.MouseDown[1]) { ImGuiFunctions::ImGuiDone = true; }
+
+			// Moved this into its own method
+			Window1(true, true, clear_color);
+
+			// Save device state
+			IDirect3DStateBlock9 *pStateBlock = NULL;
+			rw::d3d::d3ddevice->CreateStateBlock(D3DSBT_ALL, &pStateBlock);
+			pStateBlock->Capture();
+
+			//
+
+			// ImGui Rendering
+			ImGui::EndFrame();
+			ImGui::Render();
+			ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
+
+			// Restore device state
+			pStateBlock->Apply();
+			pStateBlock->Release();
+			//
+		}
+		rw::d3d::d3ddevice->Present(NULL, NULL, NULL, NULL);
+	}
+		
+	//}
+#endif //_IMGUI_TEST
+
+	d3ddevice->EndScene();
+
+}
+
+>>>>>>> 03d219c (Add ImGui into d3ddevice.cpp.)
 // Manage video memory
 
 void
@@ -1347,6 +1615,8 @@ showRaster(Raster *raster, uint32 flag)
 	if(d3d9Globals.present.PresentationInterval != interval){
 		d3d9Globals.present.PresentationInterval = interval;
 		releaseVideoMemory();
+		// This seems to be the reset function that the ImGui redux hooks into.
+		// TODO Possibly use this and create a ImGui menu.
 		d3d::d3ddevice->Reset(&d3d9Globals.present);
 		restoreVideoMemory();
 	}
@@ -1355,6 +1625,7 @@ showRaster(Raster *raster, uint32 flag)
 	assert(raster);
 	HRESULT res = d3ddevice->Present(nil, nil, 0, nil);
 
+	// This should be where to add the hook for resetting ImGui.
 	if(res == D3DERR_DEVICELOST){
 		res = d3ddevice->TestCooperativeLevel();
 		// lost while being minimized, not reset once we're back
@@ -1618,6 +1889,9 @@ startD3D(void)
 	assert(d3d::d3ddevice == nil);
 
 	BOOL icon = IsIconic(d3d9Globals.window);
+	// This is where the IDirect3DDevice9 that I am missing is at.
+	// TODO Possibly put ImGui init into here, this might actually do something.
+	// Although I'll have to figure out where to put it in the game.
 	IDirect3DDevice9 *dev;
 	hr = d3d9Globals.d3d9->CreateDevice(d3d9Globals.adapter, D3DDEVTYPE_HAL,
 			d3d9Globals.window, vp, &d3d9Globals.present, &dev);
