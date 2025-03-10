@@ -1,6 +1,10 @@
 librw
 =====
 
+## Custom content
+kelson8 - I have added ImGui into this for use in ReVC, it should also work in Re3 and maybe other games that can use librw.
+
+
 This library is supposed to be a re-implementation of RenderWare graphics,
 or a good part of it anyway.
 
