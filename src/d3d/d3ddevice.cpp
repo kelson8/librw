@@ -1002,8 +1002,8 @@ setViewport(Raster *fb)
 	vp.Height = fb->height;
 	d3ddevice->SetViewport(&vp);
 }
-<<<<<<< HEAD
-=======
+//<<<<<<< HEAD
+//=======
 
 static void
 beginUpdate(Camera *cam)
@@ -1252,9 +1252,7 @@ endUpdate(Camera *cam)
 
 }
 
->>>>>>> 03d219c (Add ImGui into d3ddevice.cpp.)
 // Manage video memory
-
 void
 addVidmemRaster(Raster *raster)
 {
@@ -1484,110 +1482,6 @@ restoreVideoMemory(void)
 	recreateVidmemRasters();
 
 	restoreD3d9Device();
-}
-
-static void
-beginUpdate(Camera *cam)
-{
-	float view[16], proj[16];
-
-	// View Matrix
-	Matrix inv;
-	Matrix::invert(&inv, cam->getFrame()->getLTM());
-	// Since we're looking into positive Z,
-	// flip X to ge a left handed view space.
-	view[0]  = -inv.right.x;
-	view[1]  =  inv.right.y;
-	view[2]  =  inv.right.z;
-	view[3]  =  0.0f;
-	view[4]  = -inv.up.x;
-	view[5]  =  inv.up.y;
-	view[6]  =  inv.up.z;
-	view[7]  =  0.0f;
-	view[8]  =  -inv.at.x;
-	view[9]  =   inv.at.y;
-	view[10] =  inv.at.z;
-	view[11] =  0.0f;
-	view[12] = -inv.pos.x;
-	view[13] =  inv.pos.y;
-	view[14] =  inv.pos.z;
-	view[15] =  1.0f;
-	memcpy(&cam->devView, view, sizeof(RawMatrix));
-//	d3ddevice->SetTransform(D3DTS_VIEW, (D3DMATRIX*)view);
-
-	// Projection Matrix
-	float32 invwx = 1.0f/cam->viewWindow.x;
-	float32 invwy = 1.0f/cam->viewWindow.y;
-	float32 invz = 1.0f/(cam->farPlane-cam->nearPlane);
-
-	proj[0] = invwx;
-	proj[1] = 0.0f;
-	proj[2] = 0.0f;
-	proj[3] = 0.0f;
-
-	proj[4] = 0.0f;
-	proj[5] = invwy;
-	proj[6] = 0.0f;
-	proj[7] = 0.0f;
-
-	proj[8] = cam->viewOffset.x*invwx;
-	proj[9] = cam->viewOffset.y*invwy;
-	proj[12] = -proj[8];
-	proj[13] = -proj[9];
-	if(cam->projection == Camera::PERSPECTIVE){
-		proj[10] = cam->farPlane*invz;
-		proj[11] = 1.0f;
-
-		proj[15] = 0.0f;
-	}else{
-		proj[10] = invz;
-		proj[11] = 0.0f;
-
-		proj[15] = 1.0f;
-	}
-	proj[14] = -cam->nearPlane*proj[10];
-	memcpy(&cam->devProj, proj, sizeof(RawMatrix));
-//	d3ddevice->SetTransform(D3DTS_PROJECTION, (D3DMATRIX*)proj);
-
-	// TODO: figure out where this is really done
-//	setRenderState(D3DRS_FOGSTART, *(uint32*)&cam->fogPlane);
-//	setRenderState(D3DRS_FOGEND, *(uint32*)&cam->farPlane);
-	d3dShaderState.fogData.start = cam->fogPlane;
-	d3dShaderState.fogData.end = cam->farPlane;
-	d3dShaderState.fogData.range = 1.0f/(cam->fogPlane - cam->farPlane);
-	// TODO: not quite sure this is the right place to do this...
-	d3dShaderState.fogData.disable = rwStateCache.fogenable ? 0.0f : 1.0f;
-	d3dShaderState.fogDisable.start = 0.0f;
-	d3dShaderState.fogDisable.end = 0.0f;
-	d3dShaderState.fogDisable.range = 0.0f;
-	d3dShaderState.fogDisable.disable = 1.0f;
-	d3dShaderState.fogDirty = true;
-
-	RECT r;
-	GetClientRect(d3d9Globals.window, &r);
-	BOOL icon = IsIconic(d3d9Globals.window);
-	if(!icon &&
-	   (r.right != d3d9Globals.present.BackBufferWidth || r.bottom != d3d9Globals.present.BackBufferHeight)){
-
-		d3d9Globals.present.BackBufferWidth = r.right;
-		d3d9Globals.present.BackBufferHeight = r.bottom;
-
-		releaseVideoMemory();
-		d3d::d3ddevice->Reset(&d3d9Globals.present);
-		restoreVideoMemory();
-	}
-
-	setRenderSurfaces(cam);
-
-	setViewport(cam->frameBuffer);
-
-	d3ddevice->BeginScene();
-}
-
-static void
-endUpdate(Camera *cam)
-{
-	d3ddevice->EndScene();
 }
 
 static void
