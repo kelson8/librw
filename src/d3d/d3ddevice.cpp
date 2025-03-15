@@ -15,7 +15,6 @@
 #include "rwd3dimpl.h"
 
 
-// TODO Is this where I place this? There is an EndScene function in here.
 #define _IMGUI_TEST
 #ifdef _IMGUI_TEST
 #include "imgui.h"
@@ -1089,11 +1088,7 @@ beginUpdate(Camera *cam)
 	d3ddevice->BeginScene();
 }
 
-// TODO Possibly use this for ImGui
 // I added ImGui init 'GS_START_UP' in WinMain under win.cpp
-
-
-
 // I have this almost fully working besides the window resizing and the buggy movement for it.
 // The mouse works and it doesn't crash now though.
 // Also the menu fully works using F8
@@ -1108,23 +1103,6 @@ endUpdate(Camera *cam)
 	bool show_another_window = false;
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
-	// d3ddevice->EndScene();
-	/*
-
-	        rw::d3d::d3ddevice->SetRenderState(D3DRS_ZENABLE, FALSE);
-	        rw::d3d::d3ddevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-	        rw::d3d::d3ddevice->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
-	        D3DCOLOR clear_col_dx = D3DCOLOR_RGBA((int)(clear_color.x * clear_color.w * 255.0f), (int)(clear_color.y * clear_color.w * 255.0f),
-	                                              (int)(clear_color.z * clear_color.w * 255.0f), (int)(clear_color.w * 255.0f));
-	*/
-
-	// The while loop was crashing this
-	 //while(!ImGuiFunctions::ImGuiDone) {
-		// Setup the new frames
-
-	//if (imGuiFunctions.ImGuiEnabled) {
-
-	//	}
 
 	if(!imGuiFunctions.ImGuiDone) {
 
@@ -1134,24 +1112,11 @@ endUpdate(Camera *cam)
 
 		// Test for mouse
 		ClipCursor(NULL);
-		// if (imGuiFunctions.ImGuiEnabled) {
-		//	CPad::GetPad(0)->SetDisablePlayerControls(PLAYERCONTROL_SHORTCUT_TAXI);
-		//
-		//} else {
-		//
-		//}
-
-		//
-		// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-		//if(show_demo_window) ImGui::ShowDemoWindow(&show_demo_window);
 
 		{
 			// https://www.unknowncheats.me/forum/general-programming-and-reversing/505033-imgui-mouse-interaction-video.html
 			ImGuiIO &io = ImGui::GetIO();
 			// https://www.unknowncheats.me/forum/direct3d/190472-imgui-mouse-cursor.html
-			// Hmm, with my new menu setup, the mouse shows up but cannot click on anything.
-			// Something in the code is overriding the mouse.. TODO Fix that.
-
 			// Update mouse position
 			POINT p;
 			GetCursorPos(&p);
@@ -1163,27 +1128,13 @@ endUpdate(Camera *cam)
 			// Update mouse button state
 			//io.MouseDown[0] = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
 			//io.MouseDown[1] = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
-
-			// Toggle ImGui with right mouse button
-			//if(io.MouseDown[1]) { ImGuiFunctions::ImGuiDone = true; }
-
 			// Draw the cursor to the screen
 			io.MouseDrawCursor = true;
 			//
-
-			// io.MouseDown[0] = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
-
 			// This toggles ImGui!!
-			// Now to figure out how to add a keyboard shortcut to it.
-			// Also to figure out
-			//io.MouseDown[1] = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
-
-			//if(io.MouseDown[1]) { ImGuiFunctions::ImGuiDone = true; }
-
 			// Moved this into its own method
 			//ImGuiMenus::Menu::MainMenu(false, false, clear_color);
 			ImGuiMenus::Menu::MainMenu(false, ImGuiFunctions::ShowSecondWindow, clear_color);
-
 
 			// Save device state
 			IDirect3DStateBlock9 *pStateBlock = NULL;
@@ -1204,10 +1155,9 @@ endUpdate(Camera *cam)
 		}
 		rw::d3d::d3ddevice->Present(NULL, NULL, NULL, NULL);
 	}
-		
-	//}
 #endif //_IMGUI_TEST
 
+	// Doing Imgui stuff before EndScene.
 	d3ddevice->EndScene();
 
 }
@@ -1469,8 +1419,6 @@ showRaster(Raster *raster, uint32 flag)
 	if(d3d9Globals.present.PresentationInterval != interval){
 		d3d9Globals.present.PresentationInterval = interval;
 		releaseVideoMemory();
-		// This seems to be the reset function that the ImGui redux hooks into.
-		// TODO Possibly use this and create a ImGui menu.
 		d3d::d3ddevice->Reset(&d3d9Globals.present);
 		restoreVideoMemory();
 	}
@@ -1743,9 +1691,6 @@ startD3D(void)
 	assert(d3d::d3ddevice == nil);
 
 	BOOL icon = IsIconic(d3d9Globals.window);
-	// This is where the IDirect3DDevice9 that I am missing is at.
-	// TODO Possibly put ImGui init into here, this might actually do something.
-	// Although I'll have to figure out where to put it in the game.
 	IDirect3DDevice9 *dev;
 	hr = d3d9Globals.d3d9->CreateDevice(d3d9Globals.adapter, D3DDEVTYPE_HAL,
 			d3d9Globals.window, vp, &d3d9Globals.present, &dev);
