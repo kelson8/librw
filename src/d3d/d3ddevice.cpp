@@ -21,7 +21,9 @@
 #include "imgui.h"
 #include "imgui_impl_dx9.h"
 #include "imgui_impl_win32.h"
+
 #include "imgui_functions.h"
+#include "imgui_main_menu.h"
 
 //#include "resource.h"
 //#include "skeleton.h"
@@ -1002,8 +1004,6 @@ setViewport(Raster *fb)
 	vp.Height = fb->height;
 	d3ddevice->SetViewport(&vp);
 }
-//<<<<<<< HEAD
-//=======
 
 static void
 beginUpdate(Camera *cam)
@@ -1089,59 +1089,15 @@ beginUpdate(Camera *cam)
 	d3ddevice->BeginScene();
 }
 
-#ifdef _IMGUI_TEST
-/// <summary>
-/// This is the test window that shows up.
-/// </summary>
-/// <param name="show_demo_window">Shows the demo window</param>
-/// <param name="show_another_window">Shows the test window</param>
-/// <param name="clear_color">This is the ImVec4 value for colors, mine is set to (0.45f, 0.55f, 0.60f, 1.00f)</param>
-void
-Window1(bool show_demo_window, bool show_another_window, ImVec4 clear_color)
-{
-	ImGuiIO io;
-	static float f = 0.0f;
-	static int counter = 0;
-
-	ImGui::Begin("Hello, world!"); // Create a window called "Hello, world!" and append into it.
-
-	ImGui::Text("This is some useful text.");          // Display some text (you can use a format strings too)
-	ImGui::Checkbox("Demo Window", &show_demo_window); // Edit bools storing our window open/close state
-	ImGui::Checkbox("Another Window", &show_another_window);
-
-	ImGui::SliderFloat("float", &f, 0.0f, 1.0f);             // Edit 1 float using a slider from 0.0f to 1.0f
-	ImGui::ColorEdit3("clear color", (float *)&clear_color); // Edit 3 floats representing a color
-
-	if(ImGui::Button("Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
-		counter++;
-	ImGui::SameLine();
-	ImGui::Text("counter = %d", counter);
-
-	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-	ImGui::End();
-
-	// 3. Show another simple window.
-	if(show_another_window) {
-		ImGui::Begin("Another Window", &show_another_window); // Pass a pointer to our bool variable (the window will have a closing button that
-		                                                      // will clear the bool when clicked)
-		ImGui::Text("Hello from another window!");
-		if(ImGui::Button("Close Me")) show_another_window = false;
-		ImGui::End();
-	}
-}
-
-#endif
-
 // TODO Possibly use this for ImGui
 // I added ImGui init 'GS_START_UP' in WinMain under win.cpp
 
 
 
-// I have ImGui in here, for now it auto toggles on when started up and the mouse doesn't work in it.
-// TODO Figure out how to make this hide by default - Well I just had to change the boolean from false to true in win.cpp
-// I'll leave it enabled by default for now until I fix the mouse.
-// TODO Figure out how to override the mouse
-// This is running with the F8 keybind in my lua test.
+// I have this almost fully working besides the window resizing and the buggy movement for it.
+// The mouse works and it doesn't crash now though.
+// Also the menu fully works using F8
+// This is running with the F8 keybind in ReVC.
 static void
 endUpdate(Camera *cam)
 {
@@ -1162,6 +1118,7 @@ endUpdate(Camera *cam)
 	                                              (int)(clear_color.z * clear_color.w * 255.0f), (int)(clear_color.w * 255.0f));
 	*/
 
+	// The while loop was crashing this
 	 //while(!ImGuiFunctions::ImGuiDone) {
 		// Setup the new frames
 
@@ -1186,7 +1143,7 @@ endUpdate(Camera *cam)
 
 		//
 		// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-		if(show_demo_window) ImGui::ShowDemoWindow(&show_demo_window);
+		//if(show_demo_window) ImGui::ShowDemoWindow(&show_demo_window);
 
 		{
 			// https://www.unknowncheats.me/forum/general-programming-and-reversing/505033-imgui-mouse-interaction-video.html
@@ -1199,17 +1156,18 @@ endUpdate(Camera *cam)
 			POINT p;
 			GetCursorPos(&p);
 			// I setup the hwnd to nullptr by default in win.cpp, and it's being set in the MainWndProc
-			ScreenToClient(imGuiFunctions.mainWindow, &p); // convert screen coords to client coords.
+			// Idk what I did to break this...
+			//ScreenToClient(imGuiFunctions.mainWindow, &p); // convert screen coords to client coords.
 			io.MousePos = ImVec2(p.x, p.y);
 
 			// Update mouse button state
-			io.MouseDown[0] = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
-			io.MouseDown[1] = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
+			//io.MouseDown[0] = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
+			//io.MouseDown[1] = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
 
 			// Toggle ImGui with right mouse button
-			if(io.MouseDown[1]) { ImGuiFunctions::ImGuiDone = true; }
+			//if(io.MouseDown[1]) { ImGuiFunctions::ImGuiDone = true; }
 
-			// TODO Make the mouse work properly.
+			// Draw the cursor to the screen
 			io.MouseDrawCursor = true;
 			//
 
@@ -1218,12 +1176,14 @@ endUpdate(Camera *cam)
 			// This toggles ImGui!!
 			// Now to figure out how to add a keyboard shortcut to it.
 			// Also to figure out
-			io.MouseDown[1] = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
+			//io.MouseDown[1] = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
 
-			if(io.MouseDown[1]) { ImGuiFunctions::ImGuiDone = true; }
+			//if(io.MouseDown[1]) { ImGuiFunctions::ImGuiDone = true; }
 
 			// Moved this into its own method
-			Window1(true, true, clear_color);
+			//ImGuiMenus::Menu::MainMenu(false, false, clear_color);
+			ImGuiMenus::Menu::MainMenu(false, ImGuiFunctions::ShowSecondWindow, clear_color);
+
 
 			// Save device state
 			IDirect3DStateBlock9 *pStateBlock = NULL;
