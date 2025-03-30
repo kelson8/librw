@@ -17,12 +17,18 @@
 
 #define _IMGUI_TEST
 #ifdef _IMGUI_TEST
+#define NEW_IMGUI_TESTS
 #include "imgui.h"
 #include "imgui_impl_dx9.h"
 #include "imgui_impl_win32.h"
 
 #include "imgui_functions.h"
 #include "imgui_main_menu.h"
+
+// Test, attempt to log values
+#include "ini_functions.h"
+#include "log_functions.h"
+#include "defines.h"
 
 //#include "resource.h"
 //#include "skeleton.h"
@@ -1093,18 +1099,45 @@ beginUpdate(Camera *cam)
 // The mouse works and it doesn't crash now though.
 // Also the menu fully works using F8
 // This is running with the F8 keybind in ReVC.
+// TODO If I add Linux support, try to make this work for glfw.cpp and 
+// make a glfw backend with opengl3 for use in Linux, that one will be a challenge, I'll need to cleanup the Windows specific code
 static void
 endUpdate(Camera *cam)
 {
 
 #ifdef _IMGUI_TEST
 	ImGuiFunctions imGuiFunctions = ImGuiFunctions();
+	//IniFunctions iniFunctions = IniFunctions();
+	Defines defines = Defines();
+	ImGuiMenus imGuiMenus = ImGuiMenus();
+	
 	bool show_demo_window = true;
 	bool show_another_window = false;
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 
+	// Clear the back buffer to a solid color
+	// Well this just wipes the screen contents if set
+	/* rw::d3d::d3ddevice->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0);*/
+
+	// Debug logging, TODO Remove later.
+	//LogFunctions::LogInfo(defines.logFile, "CategorizedWarps size before ImGui rendering: " + iniFunctions.categorizedWarps.size());
+
+	//    for(const auto &pair : iniFunctions.categorizedWarps) { 
+	//		LogFunctions::LogInfo(defines.logFile, "Category: " + pair.first + ", Warps " + std::to_string(pair.second.size()));
+	//		
+	//		std::cout << "Category: '" << pair.first << "', Warps: " << pair.second.size() << std::endl; 
+	//	}
+
+#ifdef NEW_IMGUI_TESTS
+	if(imGuiFunctions.ImGuiActive) {
+#else
 	if(!imGuiFunctions.ImGuiDone) {
+#endif
+
+		// Run before ImGui
+		//setDepthWrite(true);
+		//setVertexAlpha(false);
 
 		ImGui_ImplDX9_NewFrame();
 		ImGui_ImplWin32_NewFrame();
@@ -1133,8 +1166,9 @@ endUpdate(Camera *cam)
 			//
 			// This toggles ImGui!!
 			// Moved this into its own method
-			//ImGuiMenus::Menu::MainMenu(false, false, clear_color);
-			ImGuiMenus::Menu::MainMenu(false, ImGuiFunctions::ShowSecondWindow, clear_color);
+			//ImGuiMenus::Menu::MainMenu(false, ImGuiFunctions::ShowSecondWindow, clear_color);
+			//ImGuiMenus::Menu::MainMenu(clear_color);
+			imGuiMenus.MainMenu(clear_color);
 
 			// Save device state
 			IDirect3DStateBlock9 *pStateBlock = NULL;
@@ -1145,20 +1179,76 @@ endUpdate(Camera *cam)
 
 			// ImGui Rendering
 			ImGui::EndFrame();
+
+			// Help from Google Gemini
+			// Before ImGui Render::
+			rw::d3d::d3ddevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+			rw::d3d::d3ddevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+			rw::d3d::d3ddevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE); // Or TRUE
+			rw::d3d::d3ddevice->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
+			rw::d3d::d3ddevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
+			rw::d3d::d3ddevice->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_WRAP);
+			rw::d3d::d3ddevice->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_WRAP);
+			rw::d3d::d3ddevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+			rw::d3d::d3ddevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+
+			//
+
+			// TODO Test this, it might fix the buggy menu? Well this doesn't fix it either.
+			//rw::d3d::d3ddevice->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);   // rwFILTERLINEAR
+			//rw::d3d::d3ddevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);   // rwFILTERLINEAR
+			//rw::d3d::d3ddevice->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP); // rwTEXTUREADDRESSCLAMP
+			//rw::d3d::d3ddevice->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP); // rwTEXTUREADDRESSCLAMP
+			//rw::d3d::d3ddevice->SetRenderState(D3DRS_ZENABLE, FALSE);                    // rwRENDERSTATEZTESTENABLE
+			//rw::d3d::d3ddevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);               // rwRENDERSTATEZWRITEENABLE
+			//rw::d3d::d3ddevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);       // rwBLENDSRCALPHA
+			//rw::d3d::d3ddevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);   // rwBLENDINVSRCALPHA
+			//rw::d3d::d3ddevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);            // rwRENDERSTATEVERTEXALPHAENABLE
+			// 
+			//
+
+
+
 			ImGui::Render();
 			ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
+
+			// After ImGui rendering::
+			restoreD3d9Device();
+			
+			//rw::d3d::d3ddevice->SetRenderState(D3DRS_ZENABLE, TRUE);
+			//rw::d3d::d3ddevice->SetRenderState(D3DRS_ZWRITEENABLE, TRUE);
+			//rw::d3d::d3ddevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+			//rw::d3d::d3ddevice->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
+			//rw::d3d::d3ddevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
+			//rw::d3d::d3ddevice->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_WRAP);
+			//rw::d3d::d3ddevice->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_WRAP);
+			//rw::d3d::d3ddevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+			//rw::d3d::d3ddevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+			//
 
 			// Restore device state
 			pStateBlock->Apply();
 			pStateBlock->Release();
 			//
+		
+			
 		}
-		rw::d3d::d3ddevice->Present(NULL, NULL, NULL, NULL);
+
+
+		// TODO Test moving below a bit
+		/*rw::d3d::d3ddevice->Present(NULL, NULL, NULL, NULL);*/
 	}
 #endif //_IMGUI_TEST
 
 	// Doing Imgui stuff before EndScene.
 	d3ddevice->EndScene();
+
+	// Well this somewhat fixes the buggy ImGui flickering and stuff.
+	// Breaks for ReLCS though.
+	// rw::d3d::d3ddevice->Present(NULL, NULL, NULL, NULL);
+
+	// Oops, this just kills it.
+	//d3d::d3ddevice->Reset(&d3d9Globals.present);
 
 }
 
